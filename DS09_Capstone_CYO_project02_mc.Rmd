@@ -1,0 +1,1590 @@
+---
+title: "DS09_Capstone_CYO_project02_mc"
+author: "Marc Camprodon"
+date: "2023-11-22"
+output:
+  pdf_document: default
+  html_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+
+## Index-Introduction:
+
+## Index:
+
+1.  The subject of study.
+
+2.  Measuring effects.
+
+3.  Data available.
+
+4.  Initial solution.
+
+5.  Solution.
+
+6.  Conclusions - impact.
+
+
+
+## Introduction:
+
+1.  The SUBJECT of study. In this project we´ll study evolution of
+    salaries in the USA through the last 40 years. In particular we'll
+    be interested in analyzing and describing relationships between
+    education and demographic variables and wages.
+
+2.  MEASURING EFFECTS. How do these variables impact wages, how do
+    the potential effects of these variables evolve through time? Are
+    there significant differences based on such variables?
+
+3.  DATA available. We'll use the data.set
+    "wages-by-education-in-the-usa-1973-2022" from Kaggle. Using Data
+    Wrangling and visualization, we will explore the data assess our
+    first perceptions and define our working hypothesis.
+
+4.  In order to understand the test our working hypothesis, we'll
+    utilize least square estimates,linear regression techniques.
+
+5.  Further to this, we'll implement a model which will take into
+    account the accumulative effects of variables on outcomes,
+
+6.  Finally we'll draw some conclusions, impact of the findings (effect
+    of variables) on the subject of study (pay- outcome).
+
+
+
+
+## Parts 1 and 2 - Subject of study and Measuring Effects.
+
+Defining the focus of the study, as described in point 1 and 2 in the
+introduction above:
+We'll be interested in measuring effects of demographics (variables) on wages.
+
+
+
+
+## Part 3 - DATA analysis.
+
+Loading packages:
+
+
+```{r cars}
+library(tidyverse)
+
+library(dslabs)
+library(dplyr)
+library(ggplot2)
+library(caret)
+library(lubridate)
+library(readr)
+```
+
+
+Reading the input dataset
+
+-Read from web source: kaggle datasets download dasaniczka/
+wages-by-education-in-the-usa-1973-2022
+
+wages_edu <-read.csv
+("<https://www.kaggle.com/datasets/asaniczka/wages-by-education-in-the-usa-1973-2022/wages_by_education.csv>")
+
+Note "kaggle" might ask for signing-in. Once signed in, click on the download 
+button to recover the data set. The data set can then be stored in the computer, 
+and be read into R from a local folder:
+
+or, -Read from local folder:
+
+
+```{r}
+options(timeout = 120)
+wages_edu <- read.csv("C:\\Users\\marc.camprodon\\Documents\\DS_09_Capstone\\Datasets for project 2\\PROJECT2_v2_DATA_MODEL\\wages_by_education.csv", header=TRUE, stringsAsFactors=FALSE)
+
+```
+
+
+## Reviewing DATA
+
+List of unique columns
+
+
+```{r}
+col_names_edu <- colnames(wages_edu)
+col_names_edu
+```
+
+
+Viewing the first part of the data.frame:
+
+
+```{r}
+head(wages_edu)
+```
+
+
+Displaying the internal strcuture of the data set:
+
+
+```{r}
+str(wages_edu)
+```
+
+
+'data.frame': 50 obs. of 61 variables
+
+We'd like to have a more manageable data frame. We want to transform it
+to Tidy Data. Tidy format in which each row represents one observation
+and columns represent (combinations of) the different variables
+available for each of these observations. We could consolidate the
+information reshaping the data: we could organize data in 5 columns, 4
+selection variables, Education level (edu_level; edu_5), Race (race), 
+Gender (gender), Time (year), and the result of the observation or fifth 
+variable Wages (pay)(value USD per h).
+
+We will iniciate the process of DATA WRANGLING, converting the data set
+to tidy form. We can observe that data can be organized in 12 groups:
+-All, All-Men, All-Women, All-Black,All-White,All-Hispanic; 
+-Men-Black, Women-Black, Men-White, Women-White, Men-Hispanic, Women-Hispanic. 
+All of these groups have 5 possible values for the education level.
+
+We'll generate following these 12 groups as data.frames from
+"wages_edu", all with a Tidy format:
+
+
+-6B.1_wages_edu_all: year=all ; gen=all ; race=all ; level_edu=all
+five ; pay=values
+
+-6B.2_wages_edu_Men: year=all ; gen=Men ; race=all ; level_edu=all
+five ; pay=values
+
+-6B.3_wages_edu_Women: year=all ; gen=Women ; race=all ;
+level_edu=all five ; pay=values
+
+-6B.4_wages_edu_B: year=all ; gen=all ; race=Black ; level_edu=all
+five ; pay=values
+
+-6B.5_wages_edu_W: year=all ; gen=all ; race=White ; level_edu=all
+five ; pay=values
+
+-6B.6_wages_edu_H: year=all ; gen=all ; race=Hispanic ; level_edu=all
+five ; pay=values
+
+-6A.1_wages_edu_M_B: year=all ; gen=Men ; race=Black ; level_edu=all
+five ; pay=values
+
+-6A.2_wages_edu_M_W: year=all ; gen=Men ; race=White ; level_edu=all
+five ; pay=values
+
+-6A.3_wages_edu_M_H: year=all ; gen=Men ; race=Hispanic ;
+level_edu=all five ; pay=values
+
+-6A.4_wages_edu_W_B: year=all ; gen=Women ; race=Black ;
+level_edu=all five ; pay=values
+
+-6A.5_wages_edu_W_W: year=all ; gen=Women ; race=White ;
+level_edu=all five ; pay=values
+
+-6A.6_wages_edu_W_H: year=all ; gen=Women ; race=Hispanic ;
+level_edu=all five ; pay=values
+
+
+
+Let's prepare the first of these 12 data.frames, 6B.1:
+
+
+6B.1_wages_edu_all: year=all ; gen=all ; race=all ; level_edu=all five; 
+pay=values
+
+
+```{r}
+wages_edu_all <- wages_edu %>%      select(year,less_than_hs,high_school,some_college,bachelors_degree,advanced_degree)
+head(wages_edu_all)
+    
+tidy_wages_edu_all <- gather(wages_edu_all, edu_level, pay, `less_than_hs`:`advanced_degree`)
+head(tidy_wages_edu_all)
+tidy_wages_edu_all <-tidy_wages_edu_all %>% mutate(gender="All", race="All") %>% mutate(edu_5=c(1:250))
+```
+
+
+We'll prepare these 12 data.frames from the main source, and work on
+transforming them to tidy data. In the process, in order to improve and
+complete tidiness of data, we'll focus on the edu_level variable. This has 
+55 different values, while there are actually only 5 different levels of 
+education being considered in the original data. The "edu_level" variable 
+includes gender and race variables within in the original data frame structure. 
+We'll reduce that complexity to 5 actual education level values (hereby 
+referred as "a","b","c","d","e"),from the maximum education level 
+(advanced degree), now level "a",to the minimum education level,"less than hs", 
+hereby level "e".
+
+Our new education level naming convention is then as following:
+
+-"a" = "advanced_degree" 
+
+-"b" = "bachelors_degree" 
+
+-"c" = "some_college" 
+
+-"d" = "high_school" 
+
+-"e" = "less_than_hs"
+
+
+```{r}
+    tidy_wages_edu_all$edu_5[1:50]="e"
+    tidy_wages_edu_all$edu_5[51:100]="d"
+    tidy_wages_edu_all$edu_5[101:150]="c"
+    tidy_wages_edu_all$edu_5[151:200]="b"
+    tidy_wages_edu_all$edu_5[201:250]="a"
+    
+    df6B1<-tidy_wages_edu_all
+
+    #Review of the new data frame, structure and visualization:
+    head(df6B1)
+    str(df6B1)
+    qplot(year,pay,data=df6B1)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, races and genres")
+```
+
+
+Preparing the second of the 12 data.frames, 6B.2:
+
+
+6B.2_wages_edu_Men: year=all ; gen=Men ; race=all ; level_edu=all five; 
+pay=values
+
+
+```{r}
+    wages_edu_Men <- wages_edu %>%   select(year,men_less_than_hs,men_high_school,men_some_college,men_bachelors_degree,men_advanced_degree)
+    head(wages_edu_Men)
+    
+    tidy_wages_edu_Men <- gather(wages_edu_Men, edu_level, pay, `men_less_than_hs`:`men_advanced_degree`)
+    head(tidy_wages_edu_Men)
+    tidy_wages_edu_Men <-tidy_wages_edu_Men %>% mutate(gender="Men", race="All")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_Men$edu_5[1:50]="e"
+    tidy_wages_edu_Men$edu_5[51:100]="d"
+    tidy_wages_edu_Men$edu_5[101:150]="c"
+    tidy_wages_edu_Men$edu_5[151:200]="b"
+    tidy_wages_edu_Men$edu_5[201:250]="a"
+    
+    df6B2<-tidy_wages_edu_Men
+
+    #Review of the new data frame, structure and visualization:
+    head(df6B2)
+    str(df6B2)
+    qplot(year,pay,data=df6B2)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education and races, Men")
+```
+
+
+Preparing the third of the 12 data.frames, 6B.3:
+
+
+6B.3_wages_edu_Women: year=all ; gen=Women ; race=all ; level_edu=all five; 
+pay=values
+
+
+```{r}
+    wages_edu_Women <- wages_edu %>% select(year,women_less_than_hs,women_high_school,women_some_college,women_bachelors_degree,women_advanced_degree)
+    head(wages_edu_Women)
+    
+    tidy_wages_edu_Women <- gather(wages_edu_Women, edu_level, pay, `women_less_than_hs`:`women_advanced_degree`)
+    head(tidy_wages_edu_Women)
+    tidy_wages_edu_Women <-tidy_wages_edu_Women %>% mutate(gender="Women", race="All")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_Women$edu_5[1:50]="e"
+    tidy_wages_edu_Women$edu_5[51:100]="d"
+    tidy_wages_edu_Women$edu_5[101:150]="c"
+    tidy_wages_edu_Women$edu_5[151:200]="b"
+    tidy_wages_edu_Women$edu_5[201:250]="a"
+    
+    df6B3<-tidy_wages_edu_Women
+
+    #Review of the new data frame, structure and visualization:
+    head(df6B3)
+    str(df6B3)
+    qplot(year,pay,data=df6B3)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education and races, Women")
+```
+
+
+Preparing the fourth of the 12 data.frames, 6B.4:
+
+
+6B.4_wages_edu_B: year=all ; gen=all ; race=Black ; level_edu=all five; 
+pay=values
+
+
+```{r}
+    wages_edu_B <- wages_edu %>% select(year,black_less_than_hs,black_high_school,black_some_college,black_bachelors_degree,black_advanced_degree)
+    head(wages_edu_B)
+    
+    tidy_wages_edu_B <- gather(wages_edu_B, edu_level, pay, `black_less_than_hs`:`black_advanced_degree`)
+    head(tidy_wages_edu_B)
+    tidy_wages_edu_B <-tidy_wages_edu_B %>% mutate(gender="All", race="Black")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_B$edu_5[1:50]="e"
+    tidy_wages_edu_B$edu_5[51:100]="d"
+    tidy_wages_edu_B$edu_5[101:150]="c"
+    tidy_wages_edu_B$edu_5[151:200]="b"
+    tidy_wages_edu_B$edu_5[201:250]="a"
+   
+    df6B4<-tidy_wages_edu_B
+  
+    #Review of the new data frame, structure and visualization:
+    head(df6B4)
+    str(df6B4)
+    qplot(year,pay,data=df6B4)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education and genres, Black")
+```
+
+
+Preparing the fifth of the 12 data.frames, 6B.5:
+
+
+6B.5_wages_edu_W: year=all ; gen=all ; race=White ; level_edu=all five ; 
+pay=values
+
+
+```{r}
+    wages_edu_W <- wages_edu %>% select(year,white_less_than_hs,white_high_school,white_some_college,white_bachelors_degree,white_advanced_degree)
+    head(wages_edu_W)
+    
+    tidy_wages_edu_W <- gather(wages_edu_W, edu_level, pay, `white_less_than_hs`:`white_advanced_degree`)
+    head(tidy_wages_edu_W)
+    tidy_wages_edu_W <-tidy_wages_edu_W %>% mutate(gender="All", race="White")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_W$edu_5[1:50]="e"
+    tidy_wages_edu_W$edu_5[51:100]="d"
+    tidy_wages_edu_W$edu_5[101:150]="c"
+    tidy_wages_edu_W$edu_5[151:200]="b"
+    tidy_wages_edu_W$edu_5[201:250]="a"
+    
+    df6B5<-tidy_wages_edu_W
+   
+    #Review of the new data frame, structure and visualization:
+    head(df6B5)
+    str(df6B5)
+    qplot(year,pay,data=df6B5)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, genres, White")
+```
+
+
+Preparing the sixth of the 12 data.frames, 6B.6:
+
+
+6B.6_wages_edu_H: year=all ; gen=all ; race=Hispanic ; level_edu=all five; 
+pay=values
+
+
+```{r}
+    wages_edu_H <- wages_edu %>% select(year,hispanic_less_than_hs,hispanic_high_school,hispanic_some_college,hispanic_bachelors_degree,hispanic_advanced_degree)
+    head(wages_edu_H)
+    
+    tidy_wages_edu_H <- gather(wages_edu_H, edu_level, pay, `hispanic_less_than_hs`:`hispanic_advanced_degree`)
+    head(tidy_wages_edu_H)
+    tidy_wages_edu_H <-tidy_wages_edu_H %>% mutate(gender="All", race="Hispanic")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_H$edu_5[1:50]="e"
+    tidy_wages_edu_H$edu_5[51:100]="d"
+    tidy_wages_edu_H$edu_5[101:150]="c"
+    tidy_wages_edu_H$edu_5[151:200]="b"
+    tidy_wages_edu_H$edu_5[201:250]="a"
+  
+    df6B6<-tidy_wages_edu_H
+
+    #Review of the new data frame, structure and visualization:
+    head(df6B6)
+    str(df6B6)
+    qplot(year,pay,data=df6B6)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, genres, Hispanic")
+    
+```
+
+
+Preparing the seventh of the 12 data.frames, 6A.1:
+
+
+6A.1_wages_edu_M_B: year=all ; gen=Men ; race=Black ; level_edu=all five; 
+pay=values
+
+
+```{r}
+    wages_edu_M_B <- wages_edu %>% select(year,black_men_less_than_hs,black_men_high_school,black_men_some_college,black_men_bachelors_degree,black_men_advanced_degree)
+    head(wages_edu_M_B)
+    
+    tidy_wages_edu_M_B <- gather(wages_edu_M_B, edu_level, pay, `black_men_less_than_hs`:`black_men_advanced_degree`)
+    head(tidy_wages_edu_M_B)
+    tidy_wages_edu_M_B <-tidy_wages_edu_M_B %>% mutate(gender="Men", race="Black")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_M_B$edu_5[1:50]="e"
+    tidy_wages_edu_M_B$edu_5[51:100]="d"
+    tidy_wages_edu_M_B$edu_5[101:150]="c"
+    tidy_wages_edu_M_B$edu_5[151:200]="b"
+    tidy_wages_edu_M_B$edu_5[201:250]="a"
+  
+    df6A1<-tidy_wages_edu_M_B
+    
+    #Review of the new data frame, structure and visualization:
+    head(df6A1)
+    str(df6A1)
+    qplot(year,pay,data=df6A1)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, Men, Black")
+```
+
+
+Preparing the eighth of the 12 data.frames, 6A.2:
+
+
+6A.2_wages_edu_M_W: year=all ; gen=Men ; race=White ; level_edu=all five ; 
+pay=values
+
+
+```{r}
+    wages_edu_M_W <- wages_edu %>% select(year,white_men_less_than_hs,white_men_high_school,white_men_some_college,white_men_bachelors_degree,white_men_advanced_degree)
+    head(wages_edu_M_W)
+    
+    tidy_wages_edu_M_W <- gather(wages_edu_M_W, edu_level, pay, `white_men_less_than_hs`:`white_men_advanced_degree`)
+    head(tidy_wages_edu_M_W)
+    tidy_wages_edu_M_W <-tidy_wages_edu_M_W %>% mutate(gender="Men", race="White")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_M_W$edu_5[1:50]="e"
+    tidy_wages_edu_M_W$edu_5[51:100]="d"
+    tidy_wages_edu_M_W$edu_5[101:150]="c"
+    tidy_wages_edu_M_W$edu_5[151:200]="b"
+    tidy_wages_edu_M_W$edu_5[201:250]="a"
+   
+    df6A2<-tidy_wages_edu_M_W
+    
+    #Review of the new data frame, structure and visualization:
+    head(df6A2)
+    str(df6A2)
+    qplot(year,pay,data=df6A2)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, Men, White")
+```
+
+
+Preparing the ninth of the 12 data.frames, 6A.3:
+
+
+6A.3_wages_edu_M_H: year=all ; gen=Men ; race=Hispanic ; level_edu=all five; 
+pay=values
+
+
+```{r}
+    wages_edu_M_H <- wages_edu %>% select(year,hispanic_men_less_than_hs,hispanic_men_high_school,hispanic_men_some_college,hispanic_men_bachelors_degree,hispanic_men_advanced_degree)
+    head(wages_edu_M_H)
+    
+    tidy_wages_edu_M_H <- gather(wages_edu_M_H, edu_level, pay, `hispanic_men_less_than_hs`:`hispanic_men_advanced_degree`)
+    head(tidy_wages_edu_M_H)
+    tidy_wages_edu_M_H <-tidy_wages_edu_M_H %>% mutate(gender="Men", race="Hispanic")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_M_H$edu_5[1:50]="e"
+    tidy_wages_edu_M_H$edu_5[51:100]="d"
+    tidy_wages_edu_M_H$edu_5[101:150]="c"
+    tidy_wages_edu_M_H$edu_5[151:200]="b"
+    tidy_wages_edu_M_H$edu_5[201:250]="a"
+   
+    df6A3<-tidy_wages_edu_M_H
+    
+    #Review of the new data frame, structure and visualization:
+    head(df6A3)
+    str(df6A3)
+    qplot(year,pay,data=df6A3)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, Men, Hispanic")
+
+```
+
+
+Preparing the tenth of the 12 data.frames, 6A.4:
+
+
+6A.4_wages_edu_W_B: year=all ; gen=Women ; race=Black ;level_edu=all five; 
+pay=values
+
+
+```{r}
+    wages_edu_W_B <- wages_edu %>% select(year,black_women_less_than_hs,black_women_high_school,black_women_some_college,black_women_bachelors_degree,black_women_advanced_degree)
+    head(wages_edu_W_B)
+    
+    tidy_wages_edu_W_B <- gather(wages_edu_W_B, edu_level, pay, `black_women_less_than_hs`:`black_women_advanced_degree`)
+    head(tidy_wages_edu_W_B)
+    tidy_wages_edu_W_B <-tidy_wages_edu_M_B %>% mutate(gender="Women", race="Black")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_W_B$edu_5[1:50]="e"
+    tidy_wages_edu_W_B$edu_5[51:100]="d"
+    tidy_wages_edu_W_B$edu_5[101:150]="c"
+    tidy_wages_edu_W_B$edu_5[151:200]="b"
+    tidy_wages_edu_W_B$edu_5[201:250]="a"
+    
+    df6A4<-tidy_wages_edu_W_B
+    
+    #Review of the new data frame, structure and visualization:
+    head(df6A4)
+    str(df6A4)
+    qplot(year,pay,data=df6A4)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, Women, Black")
+```
+
+
+Preparing the eleventh of the 12 data.frames, 6A.5:
+
+
+6A.5_wages_edu_W_W: year=all ; gen=Women ; race=White ;level_edu=all five ; 
+pay=values
+
+
+```{r}
+    wages_edu_W_W <- wages_edu %>% select(year,white_women_less_than_hs,white_women_high_school,white_women_some_college,white_women_bachelors_degree,white_women_advanced_degree)
+    head(wages_edu_W_W)
+    
+    tidy_wages_edu_W_W <- gather(wages_edu_W_W, edu_level, pay, `white_women_less_than_hs`:`white_women_advanced_degree`)
+    head(tidy_wages_edu_W_W)
+    tidy_wages_edu_W_W <-tidy_wages_edu_W_W %>% mutate(gender="Women", race="White")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_W_W$edu_5[1:50]="e"
+    tidy_wages_edu_W_W$edu_5[51:100]="d"
+    tidy_wages_edu_W_W$edu_5[101:150]="c"
+    tidy_wages_edu_W_W$edu_5[151:200]="b"
+    tidy_wages_edu_W_W$edu_5[201:250]="a"
+    
+    df6A5<-tidy_wages_edu_W_W
+    
+    #Review of the new data frame, structure and visualization:
+    head(df6A5)
+    str(df6A5)
+    qplot(year,pay,data=df6A5)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, Women, White")
+```
+
+
+Preparing the twelfth of the 12 data.frames, 6A.6:
+
+
+6A.6_wages_edu_W_H: year=all ; gen=Women ; race=Hispanic ;level_edu=all five;
+pay=values
+
+
+```{r}
+    wages_edu_W_H <- wages_edu %>% select(year,hispanic_women_less_than_hs,hispanic_women_high_school,hispanic_women_some_college,hispanic_women_bachelors_degree,hispanic_women_advanced_degree)
+    head(wages_edu_W_H)
+    
+    tidy_wages_edu_W_H <- gather(wages_edu_W_H, edu_level, pay, `hispanic_women_less_than_hs`:`hispanic_women_advanced_degree`)
+    head(tidy_wages_edu_W_H)
+    tidy_wages_edu_W_H <-tidy_wages_edu_W_H %>% mutate(gender="Women", race="Hispanic")%>% mutate(edu_5=c(1:250))
+    
+    tidy_wages_edu_W_H$edu_5[1:50]="e"
+    tidy_wages_edu_W_H$edu_5[51:100]="d"
+    tidy_wages_edu_W_H$edu_5[101:150]="c"
+    tidy_wages_edu_W_H$edu_5[151:200]="b"
+    tidy_wages_edu_W_H$edu_5[201:250]="a"
+    
+    df6A6<- tidy_wages_edu_W_H
+
+    #Review of the new data frame, structure and visualization:
+    head(df6A6)
+    str(df6A6)
+    qplot(year,pay,data=df6A6)+geom_smooth()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages for all education, Women, Hispanic")
+```
+
+
+Now we've made data tidy, and have created 12 data frames:
+6A.1,6A.2,6A.3,6A.4,6A.5,6A.6; 6B.1,6B.2,6B.3,6B.4,6B.5,6B.6.
+
+Let's combine them all together, so we can start data
+exploration-analysis. We need to add rows. We'll use the bind_rows
+function from tidyverse:
+
+
+```{r}
+    df6A <- bind_rows(list(df6A1,df6A2,df6A3,df6A4,df6A5,df6A6))
+    df6B <- bind_rows(list(df6B1,df6B2,df6B3,df6B4,df6B5,df6B6))
+    df12 <- bind_rows(list(df6A,df6B))
+   
+    #Let's display the internal strcuture of the new formed data frame:
+    head(df12)
+    str(df12)
+```
+
+
+Level of education is now contained in two variables, "edu_level" and
+"edu_5". We'll create a data frame showing only one variable for
+education level, selecting "edu_5", since edu_5 does not include other
+additional (demographics) information:
+
+
+```{r}
+    df12_t <- df12 %>% select(year,gender,race,edu_5,pay)
+    
+    head(df12_t)
+    str(df12_t)
+```
+
+
+We can compare "df12" and "df12_t", see how df12_t (Tidy) is the Tidiest
+version:
+
+
+```{r}
+    unique_columns_count <-  df12 %>%
+      summarise(n_year = n_distinct(year),
+                n_edu_level = n_distinct(edu_level),
+                n_gender = n_distinct(gender),
+                n_race = n_distinct(race),
+                n_edu_5=n_distinct(edu_5),
+                n_pay = n_distinct(pay))
+    print(unique_columns_count)
+   
+    unique_columns_count <-  df12_t %>%
+      summarise(n_year = n_distinct(year),
+                n_gender = n_distinct(gender),
+                n_race = n_distinct(race),
+                n_edu_5=n_distinct(edu_5),
+                n_pay = n_distinct(pay))
+    print(unique_columns_count)
+```
+
+
+Summary (df12_t -vs- df12): edu_level variable had 55 different values,
+while there are actually only 5 different levels of education being
+considered. "edu_level" included gender and race variables within. We
+have now simplified these 55 values, to the 5 actual education level
+values, without loosing the additional information contained in
+"edu_level".
+
+Data exploration: once we've got data re-organized (Tidy), let's start with
+representing data through data visualization tools:
+
+Starting with "generic data" (data including "All" races, "All" genders,
+"All" races and genders) compare avg values versus segmented data (by
+race, by gender). See how education level and year affect wages: We
+can select a race and gender, see how the level of education plays a
+role in the wages level (pay) through time:
+
+
+```{r}
+    df12_t %>%
+      filter(race == "All",gender == "All") %>%
+      ggplot(aes(year, pay, color = edu_5)) +
+      geom_line()+
+      xlab("YEAR") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages by education level (edu_5)")
+```
+
+
+This plot provides already a visual overview of the evolution of wages, based 
+on the 5 different education levels considered, through time. 
+By education level, through time, we observe: 
+
+-Level "a", advanced degree, has evolved from around 37 (dollars per hour) 
+in 1973 to around 54 (dollars per hour) in 2022. 
+Note we'll use the abbreviation 'dph' for 'dollars per hour' onwards. 
+-Level "b", bachelor degree, has evolved from around 33dph in 1973 to around 
+42dph in 2022. 
+-Level "c", some college, advanced degree, has changed little, from around
+24dph in 1973 to around 25$/h in 2022. 
+-Level "d", high-school, has
+stagnated around 22dph, from 1973 until 2022.Dropping 2 to 3dph through
+the mid 90s, recovering in the mid 2000s,just to drop adn recover again
+around 2020. 
+-Level "e", less than high-school, has dropped from around
+18dph in 1973 to around 16dph in 2022.
+
+Between education levels: we observe large dispersion on pay values,
+around 38dph wages difference between levels "e" and "a"(16-54) in 2022 
+(wages "a" being 2,3 times that of wages "e"). 
+In 1973 dispersion was at 19dph (18-37) (wages "a" being 2 times that of 
+wages "e"). 
+An interesting finding is, wages for education levels (a,b) have grown through 
+time, while wages in the c-d categories have stagnated (which means,
+purchasing power should be much lower in 2022 with that level of wages versus 
+the one enjoyed in 1973 with the same wages). Category "e" has decreased.
+
+We'll now use a "facet wrap" plot to compare evolution of wages through
+time (for each of the 5 education levels), and for the 6 race-gender
+combinations: Black-Women, Black-Men; Hispanic-Women, Hispanic-Men;
+White-Women, White-Men: This might help us identify any significant
+differences among graphics:
+
+
+```{r}
+    df12_t %>%
+      filter(race %in% c("Black", "White", "Hispanic") & gender %in% c("Women","Men")) %>%
+      ggplot(aes(year, pay, color = edu_5)) +
+      geom_line() +
+      facet_wrap(~race ~gender)+
+      xlab("YEAR [1973-2022]") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages by education - Race-Gender MATRIX")
+```
+
+
+Observations:
+
+1.  On RACE and GENDER.
+
+1.1.RACE-GENDER gap: 
+
+-White_Men are the best paid at equal level of education, for all 5 education 
+levels; the best paid of any race-gender combination. Specially for higher 
+education levels. 
+-Hispanic_Women are the worst paid group at the highest education level. 
+We can print a few values confirming these observations from the plot:
+
+
+```{r}
+    which.max(df12_t$pay)
+    df12_t$pay[452]
+    df12_t$race[452]
+    df12_t$gender[452]
+    #[1] 64.04 [1] "White" [1] "Men"
+    which.min(df12_t$pay)
+    df12_t$pay[1278]
+    df12_t$race[1278] 
+    df12_t$gender[1278]
+    #[1] 11.35 [1]"Hispanic" [1] "Women"
+```
+
+
+These are coherent with our perception:
+Best (pay) wages value of all across our data belongs to the White_Men group;
+Worst (pay) wages value of all across our data, belongs to the Hispanic_Women 
+group.
+
+1.2. GENDER gap: 
+
+-The lowest gender gap within a race seems to be within the Black group. 
+Both gender distributions through time are similar, at similar values. 
+-The White and Hispanic groups showing a larger gap between gender.
+-White group, gap between Women and Mean is around a 40% plus pay for Men, 
+for all education levels. In absolute values,the more education level, the 
+larger the absolute value differential. 
+-Hispanic group: Men receive between 30 to 40% more pay than Women, for the 
+same education level.
+
+We can produce a plot considering only GENDER (race within), for a more generic view of
+the effect of gender on pay:
+Overview of pay evolution through time for the two considered genders(plus All):
+
+
+```{r}
+    df12_t %>%
+      filter(race =="All" & edu_5 %in% c("a","b","c","d","e")) %>%
+      ggplot(aes(year, pay, color = edu_5)) +
+      geom_line() +
+      facet_wrap(~gender)+
+      xlab("YEAR [1973-2022]") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages by gender - for all education levels")
+```
+
+
+Overall (not splitting gender by race), Men wages are well above those of Women. 
+All the way from 1973 until 2022. Furthermore, the gap (i.e."a" level, 
+1973: 33-40 to 2022: 44-63) seems to have increased (in absolute values) 
+through time.
+
+1.3. RACE gap: 
+
+-White_Men are the best paid group, while White_Women receive a worse wages than 
+Hispanic_Men and Black_Men and Women, at high education levels. 
+-Hispanic Men are better paid than Black Men and Women, however Hispanic 
+Women receive lower wages than Black Mean and Women.
+
+It appears that race and gender are key-factors, which combined result in the 
+observed effects. 
+In order to view a more generic picture of the race gap, we could represent a 
+Race based plot, which combines genders within each race group:
+
+
+```{r}
+    df12_t %>% filter(race %in% c("Black", "White", "Hispanic") & gender == "All") %>%
+      ggplot(aes(year, pay, color = edu_5)) +
+      geom_line() +
+      facet_wrap(~race)+
+      xlab("YEAR [1973-2022]") +
+      ylab("WAGES [$/h]") +
+      ggtitle("Wages by race - for all education levels")
+```
+
+
+This "Wages by race - for all education levels" helps compare wages among races.
+When not considering gender(race values combining here both genders) separately,
+then we can see that:
+-The best wages for education levels a,b,c,d have been through time for the 
+White group.
+-Hispanic where paid less than Black and White in 1973, however Hispanic are 
+paid more than Black for the top education levels a,b in 2022, however still 
+worse than the White group.
+-The White group at the lowest education level "e", where paid more than 
+Hispanic, and Hispanic in turn more than Black group members, in 1973. However 
+in 2022 the White group is the second best paid at edu_5 level "e", behind 
+Hispanic, remaining the Black group as the worst paid at level "e".
+
+Similar to the  former representations, but with focus on each EDUCATION level 
+across RACE, following is a plot "Wages by race - for all edu_5":
+
+
+```{r}
+    df12_t %>% filter(edu_5 %in% c("a","b","c","d","e") & gender=="All") %>%
+      ggplot(aes(year, pay, color=race)) +
+      geom_line()+
+      facet_grid(~ edu_5)+
+      xlab("YEAR [1973-2022]") +
+      ylab("WAGES [$/h]")+
+      ggtitle("Wages by race - for all edu_5")
+```
+
+
+This approach reveals that, after the mid 80s:
+
+-The White-group (genders mixed) perceive the highest wages for all education 
+levels b,c,d through time.For level "a" the same it true after the mid 80s;
+for level "e", the White-Group (genders mixed) is in 2nd place,being the best 
+paid the Hispanic-group, the worst the Back-group.
+-The Hispanic-group perceive the second highest wages (except a short periods 
+i.e. in the early 2000s);
+-The Black-group perceive the lowest wages.
+
+
+2.  On TIME(year) and EDUCATION(edu_5).
+
+From the plots we've viewed so far, 
+
+2.1. Time effect: consistently,
+-(a,b) GROWING wages: for "a" and "b" education levels, although oscillations 
+(positive, negative slopes) are observed, a general positive trend is observed 
+through time on wages. 
+-(c,d) STAGNANT wages: For levels "c" and "d", wages are overall stagnant
+through time;
+-(e) DECREASING wages: For level "e", wages have decreased over time.
+
+2.2. Education level effect: we've covered this variable before. As a generic 
+consistent finding, for all other variable effect combinations, education 
+remains a key variable, its effect on wages coherent across all visual 
+representations of data. 
+Conclusion: across time, the higher the education level, the higher the wages.
+
+Finally, we can display the starting (year 1973) and end (year 2022) points of 
+the time scale being considered, observe how pay-race fare (comparison between 
+starting and end points):
+
+Faceting:
+
+
+```{r}
+    filter(df12_t, year%in%c(1973, 2022) & gender=="All") %>%
+      ggplot(aes(race, pay, col = edu_5)) +
+      geom_point() +
+      facet_grid(. ~ year)+
+      xlab("YEAR [1973 and 2022]") +
+      ylab("WAGES [$/h]")+
+      ggtitle("Wages by race and education")
+```
+
+
+Overview of starting and ending points, for each education level for each race.
+We can appreciate coherence with former representations. It stands out that for 
+level "e" the White-group comes in seond place, consistent with former findings.
+
+Further visualization of the education level effects. We can add a boxplot
+for a visual representation of wages versus education, where time, race, gender 
+explain the position of the box-plot defining values (mean, quartiles, range, 
+plus outliers).
+
+
+```{r}
+      b_p <- df12_t %>%
+      filter(year == 2022 & !is.na(pay)) %>%
+      ggplot(aes(edu_5, pay)) +
+      geom_boxplot() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+      geom_point(alpha = 0.5)+
+      xlab("EDUCATION LEVEL") +
+      ylab("WAGES [$/h]")+
+      ggtitle("Wages by education level")
+      b_p
+```
+
+
+In addition to that, we can represent the generic effect of time on wages.
+Facet_grid density plots can help us with visualizing trends. We'll select four 
+points in time (years 1983,1993,2003,2013) quite evenly distributed between the 
+starting point in our time scale (1973) and the ending point (2022):
+
+
+```{r}
+   filter(df12_t, year %in% c(1973,1983, 1993,2003,2013, 2022) & gender=="All") %>%
+      ggplot(aes(pay)) +
+      geom_density(fill="blue")+
+      facet_grid(. ~ year)+
+      xlab("WAGES") +
+      ylab("DENSITY")+
+      ggtitle("Evolution of wages")
+```
+
+
+This graphic shows a growth of wages density towards higher ones through time, 
+consistent with an increasing gap between education wages levels, growth of 
+wages for "a" and "b" education levels through time, and stagnation for "c" 
+and "d", along together with a wage decrease for the "e" level of education.
+
+We can summarize our findings after data visualization work. 
+GENERAL CONCLUSIONS after data wrangling and visualization: 
+
+1.level of education has the highest effect on pay; 
+
+2.time has an effect on pay, which varies according to edu_5: 
+-2.1."a","b" levels growing; 
+-2.2."c","d" stagnating; 
+-2.3."e" levels decreasing. 
+
+2.Race consistently (through time) affects the level of pay for the same 
+education level,being -in general- White the highest paid, Hispanic following, 
+and Black last;
+
+3.Gender has been and continues to be a factor affecting pay level. Men are 
+paid more than Women across education level and race; 4.Through time wages are 
+increasing for higher levels of education (a, b), and showing stagnation for 
+the lower levels of education (c,d),and decreasing for the lowest (e), across 
+races and genders.
+
+
+
+
+
+## Part 4. Initial solution.
+
+
+Our working hypothesis will be based on the work we've done so far with
+Data Visualization.
+
+We'll fit models which consider education, gender and race effects, separately, 
+then a global model which considers effects from education, gender and race. 
+We'll start considering race, gender, the race+gender, then a stronger variable, 
+edu_5, and finally all of them combined, including year too, as following: 
+
+fit1 [pay \~ race] 
+fit2 [pay \~ gender] 
+fit3 [pay \~ gender + race] 
+fit4 [pay \~ edu_5 ] 
+fit5 [pay \~ edu_5 + gender + race] 
+fit6 [pay \~ edu_5 + year + gender + race]
+
+Least squares:
+
+We will try first the race effect on wages (pay ~ race). 
+Race effect _ pay - fitting a linear model:
+
+
+```{r}
+    fit1 <- lm(pay ~ as.factor(race), data = df12_t)
+    fit1
+    summary(fit1)
+```
+
+
+Fitting a linear model with pay as dependent and race as independent variables, 
+data from df12_t:
+-we obtain an intercept of 27.4589 and slopes for Black (-1.8798), 
+Hispanic(-2.4815) and White (0.6016).
+-According to this, we observe a positive effect on pay for the White group, and 
+negative effects for then Black and Hispanic groups. 
+-p-values are very low for Black and Hispanic (good predictors), but over 0.05 
+for White. 
+-Residuals are large. 
+-Multiple R squared is far from 1, the model can explain some 1,4% of the 
+variability.
+
+
+Then we'll study the gender effect on pay (gender ~ race):
+
+
+```{r}
+    fit2 <- lm(pay ~ as.factor(gender), data=df12_t)
+    summary(fit2)
+```
+
+
+Fitting a linear model with pay as dependent, gender as independent variables, 
+data from df12_t:
+-we obtain an intercept of 26.365 and slopes for Men (3.104) and Women (-2.641).
+-gender=Men adds to the pay value while gender=Women reduces pay.
+-p-values are very low for gender, both for Men and Women, thus the predictors 
+are good. 
+-However residuals are very high. 
+-Multiple R squared is far from 1, the model can explain some 5% of the 
+variability.
+
+
+Now we'll combine gender and race, see how its combined effects improve the 
+model:
+
+
+```{r}
+    fit3 <- lm(pay ~ as.factor(gender) + as.factor(race), data=df12_t)
+    summary(fit3)
+    plot(fit3$residuals, pch = 16, col = "red")
+```
+
+
+Fitting a linear model with pay as dependent and gender and race as independent 
+variables, data from df12_t:
+-we obtain an intercept of 26.365 and slopes for Men (3.104) and Women (-2.641);
+-slopes for Black (-1.8798), Hispanic (-2.4815), and White (0.6016);
+-gender=Men and race=White adds to the pay (wages) while gender=Women and 
+race=Hispanic or Black reduces pay;
+-p-values are very low for Men, Women, Black, Hispanic, making these good 
+predictors, however White shows a 0.252 value (>0.05).
+-Residuals remain large.
+-Multiple R squared is still far from 1. The model can explain some 6,3% of the 
+variability.
+
+
+Following we study the effect of edu_5 on pay. Considering education level seems 
+to be have the strongest effects on pay (hypothesis after perception from data 
+visualization):
+
+
+```{r}
+    fit4 <- lm(pay ~ edu_5, data=df12_t)
+    summary(fit4)
+    plot(fit4$residuals, pch = 16, col = "red")
+```
+
+
+Fitting a linear model with pay as dependent and edu_5 as independent variables, 
+data from df12_t:
+-we obtain an intercept of 41.7710 and negative slopes for edu levels b,c,d 
+and e.
+-p-values are low across the education levels, thus the predictor(s) are good.
+-However residuals keep being large. 
+-Multiple R squared is now close to 1, the model can explain some 82% of the 
+variability.
+-This is a KEY FINDING, this confirms the perception that EDUCATION LEVEL has 
+the MOST EFFECT on PAY(wages).
+
+
+We'll now fit a model with "edu_5", "gender", and "race" as independent 
+variables (pay ~ edu_5 + gender + race):
+
+
+```{r}
+    fit5 <- lm(pay ~ as.factor(edu_5) + as.factor(gender) + as.factor(race), data=df12_t)
+    summary(fit5)
+    plot(fit5$residuals, pch = 16, col = "red")
+```
+
+
+Fitting a linear model with pay as dependent and edu_5, gender, race as 
+independent variables, data from df12_t: 
+-we obtain an intercept of 42.5568 and positive slopes for Men and White, and 
+negative slopes for edu levels b,c,d and e, Women, Black, and Hispanic.
+-p-values are low across the education levels, thus the predictor(s) are good.
+-Residuals have decreased (-17 to +18).
+-Multiple R squared is now close to 1, the model can explain some 88.5% of the 
+variability.
+
+This is the best model version yet.
+
+As a last potential improvement, let's add to it YEAR as independent variable:
+
+
+Finally, we'll fit a model with "edu_5", "year", "gender", and "race" as independent 
+variables (pay ~ edu_5 + year + gender + race):
+
+
+```{r}
+    fit6 <- lm(pay ~ as.factor(edu_5) + as.factor(year)+ as.factor(gender) + as.factor(race), data=df12_t)
+    summary(fit6)
+    plot(fit6$residuals, pch = 16, col = "red")
+```
+
+
+Fitting a linear model with pay as dependent and edu_5, year, gender, race as 
+independent variables, data from df12_t: 
+-we obtain an intercept of 41.79359 and positive slopes for Men and White,
+and years from 1998 to 2022; 
+-and negative slopes for edu levels b,c,d and e, Women, Black, and Hispanic, 
+and years 1973-1997;
+-p-values are low across all variables-values, expect for years 1973-1997.
+-Residuals have decreased (-15 to +14).
+-Multiple R squared is now close to 1, the model can explain some 91.1% of the 
+variability.
+
+
+
+
+
+## Part 5. Solution.
+
+
+Building a "Recommendation System" tool - Machine Learning Model -. 
+Now we'll be interested on projecting expected wages (pay) through the
+period, 1973-2022. We can start with defining the overall pay average,
+through time, and across all relevant variables, education level, race,
+and gender.
+
+We'll work with a "recommendation system" tool. We will create a simple 
+model -algorithm- which we will improve through a sequence of steps 
+(successive models). Using a training set (train_set) and a test set 
+(test_set) to assess the accuracy of the models. The RMSE function (residual 
+mean square error) will help us evaluate model accuracy. By calculating 
+the error made between prediction of wages, and true wages.
+
+
+Creating train and test sets:
+
+
+```{r}
+    library(caret)
+    set.seed(755)
+    test_index <- createDataPartition(y = df12_t$pay, times = 1, p = 0.2,
+                                      list = FALSE)
+    #test_index
+    train_set <- df12_t[-test_index,]
+    test_set <- df12_t[test_index,]
+    head(train_set)
+    head(test_set)
+    
+    #To make sure we don’t include RACE and GENDER in the test set that do not appear in the
+    #training set, we remove these entries using the semi_join function:
+    test_set <- test_set %>%
+      semi_join(train_set, by = "race") %>%
+      semi_join(train_set, by = "gender")
+    head(test_set)
+    
+    #The RMSE function
+    RMSE <- function(true_pay, predicted_pay){
+      sqrt(mean((true_pay - predicted_pay)^2))
+    }
+    #A FIRST MODEL:
+    mu_hat <- mean(df12_t$pay)
+    mu_hat
+    #> #[1]  26.51901
+  
+    naive_rmse <- RMSE(test_set$pay, mu_hat)
+    naive_rmse
+    #> #[1] 10.70215
+```
+
+
+NOTE - CLAUSE:
+Regarding significance of the obtained values, considering the nature of our 
+data:
+-The obtained mu_hat is the average wages(pay), through the considered period, 
+and all variables.
+-We've got sets of data referring to ALL genders and ALL races. 
+-and also sets of data, specific for a matrix of gender-race values.
+        
+Let's see if these two (generic-ALL ; matrix) types of data, are to be 
+considered in this study, or a filter is to be applied.
+And study if values for ALL genders-ALL races, are somehow equivalent to the 
+combination of the 3 races and 2 genders being considered:
+ 
+        #df12_t.All <- df12_t%>% filter( race=="All" & gender=="All")
+        #str(df12_t.All)
+        #mu_hat.All <- mean(df12_t.All$pay)
+        #mu_hat.All
+        #[1] 27.6932
+        
+        #we've got 6 groups of 250 observations, each based on generic 
+        #information (including more than variable variation within, for example 
+        #all White observations, which include both genders within)
+        #These are "All"; "All MEN"; "All WOMEN";"All White"; "All Black"; 
+        #"All Hispanic".
+        
+        #if we only include observations with independent variables defining 
+        #the observation value (matrix of genders x races), we might get more 
+        #accurate variable -effectapproximations. 
+        
+        #df12_t.matrix <- df12_t%>% filter( race %in% 
+              #c("Black","White","Hispanic") & gender %in% c("Women","Men"))
+        #str(df12_t.matrix)
+        #mu_hat.matrix <- mean(df12_t.matrix$pay)
+        #mu_hat.matrix
+        #[1] 26.34754
+        
+        #naive_rmse
+        #[1] 10.34644 for df12_t.matrix, a little lower than the former 
+        #10.706  (for df12_t)
+        
+        #We might want to select df12_t.matrix from here. However the observed 
+        #difference between using one (all data) 
+        #or the other ("matrix" data only) approach is small (delta-mu = 0.17; 
+        #delta-rmse= 0.35 )
+        
+Conclusion on note: We will consider all available data for our study.
+END NOTE - END CLAUSE.
+        
+
+## MODEL 1.   
+Our first model will return an average expected pay for any combination of 
+education level, race, gender and year:
+
+
+```{r}
+    mu_hat <- mean(df12_t$pay)
+    mu_hat
+          
+    naive_rmse <- RMSE(test_set$pay, mu_hat)
+    naive_rmse
+          
+    rmse_results <- data_frame(method = "Just the average", RMSE = naive_rmse)
+    rmse_results 
+```
+
+
+## MODEL 2.
+Modeling EDUCATION (edu_5) effects
+
+
+```{r}
+    mu_hat_2 <- mean(df12_t$pay) 
+    mu_hat_2
+    
+    edu_avgs <- train_set %>% 
+      group_by(edu_5) %>% 
+      summarize(b_i = mean(pay - mu_hat_2))
+    edu_avgs
+                
+    edu_avgs %>% qplot(b_i, geom ="histogram", bins = 3, data = ., color = I("black"))
+                
+    predicted_pay <- mu_hat_2 + test_set %>% 
+      left_join(edu_avgs, by='edu_5') %>%
+      pull(b_i)
+    head(predicted_pay)
+      
+    model_1_rmse <- RMSE(predicted_pay, test_set$pay)
+    model_1_rmse
+      
+                
+    rmse_results <- bind_rows(rmse_results,
+          data_frame(method="Educ Effect Model",
+          RMSE = model_1_rmse ))
+    rmse_results
+    rmse_results %>% knitr::kable()  
+      
+```
+
+
+## MODEL 3.
+Modeling RACE effect on top of edu effect:
+
+
+```{r}
+      train_set %>% 
+          group_by(race) %>% 
+          summarize(b_u = mean(pay)) %>% 
+          ggplot(aes(b_u)) + 
+          geom_histogram(bins = 5, color = "black")
+          #graphic shows distribution around b_u of ca.26,5        
+                
+      race_avgs <-train_set %>% 
+           left_join(edu_avgs, by='edu_5') %>%
+           group_by(race) %>%
+           summarize(b_u = mean(pay - mu_hat - b_i))
+      race_avgs  
+         
+      predicted_pay_2 <- test_set %>% 
+          left_join(edu_avgs, by='edu_5') %>%
+          left_join(race_avgs, by='race') %>%
+          mutate(pred = mu_hat + b_i + b_u) %>%
+          pull(pred)
+      head(predicted_pay_2)
+                
+      model_2_rmse <- RMSE(predicted_pay_2, test_set$pay)
+      model_2_rmse
+             
+      rmse_results <- bind_rows(rmse_results,
+            data_frame(method="Educ + Race Effects Model",  
+            RMSE = model_2_rmse ))
+      rmse_results %>% knitr::kable() 
+        
+```
+
+
+## MODEL 4.
+Adding GENDER effect on top of race effect on top of edu effect:
+
+
+```{r}
+        train_set %>% 
+          group_by(gender) %>% 
+          summarize(b_w = mean(pay)) %>% 
+          ggplot(aes(b_w)) + 
+          geom_histogram(bins = 3, color = "black")
+   
+        gender_avgs <-train_set %>% 
+          left_join(edu_avgs, by='edu_5') %>%
+          left_join(race_avgs, by='race') %>%
+          group_by(gender) %>%
+          summarize(b_w = mean(pay - mu_hat - b_i - b_u))
+        gender_avgs  
+  
+        predicted_pay_03 <- test_set %>% 
+          left_join(edu_avgs, by='edu_5') %>%
+          left_join(race_avgs, by='race') %>%
+          left_join(gender_avgs, by='gender')%>%
+          mutate(pred = mu_hat + b_i + b_u +b_w) %>%
+          pull(pred)
+        head(predicted_pay_03)       
+    
+        model_03_rmse <- RMSE(predicted_pay_03, test_set$pay)
+        model_03_rmse
+        #[1] 3.644879
+        
+        rmse_results <- bind_rows(rmse_results,
+                                  data_frame(method="Educ + Race + Gender Effects Model",  
+                                             RMSE = model_03_rmse ))
+        rmse_results %>% knitr::kable()
+```
+
+
+## MODEL 5.
+Effect of education in the model is important. Also taking into account
+race and Gender effects help improve the model's results.
+
+Adding YEAR effects:
+
+
+```{r}
+        train_set %>% 
+          group_by(year) %>% 
+          summarize(b_z = mean(pay)) %>% 
+          ggplot(aes(b_z)) + 
+          geom_histogram(bins = 3, color = "black")
+        
+        year_avgs <-train_set %>% 
+          left_join(edu_avgs, by='edu_5') %>%
+          left_join(race_avgs, by='race') %>%
+          left_join(gender_avgs, by='gender')%>%
+          group_by(year) %>%
+          summarize(b_z = mean(pay - mu_hat - b_i - b_u - b_w))
+        year_avgs  
+        
+        predicted_pay_04 <- test_set %>% 
+          left_join(edu_avgs, by='edu_5') %>%
+          left_join(race_avgs, by='race') %>%
+          left_join(gender_avgs, by='gender')%>%
+          left_join(year_avgs, by='year')%>%
+          mutate(pred = mu_hat + b_i + b_u +b_w +b_z) %>%
+          pull(pred)
+        head(predicted_pay_04)       
+        
+        model_04_rmse <- RMSE(predicted_pay_04, test_set$pay)
+        model_04_rmse
+        
+        rmse_results <- bind_rows(rmse_results,
+                                  data_frame(method="Educ + Race + Gender + Year Effects Model",  
+                                             RMSE = model_04_rmse ))
+        rmse_results %>% knitr::kable()
+```
+
+
+## MODEL 6.
+REGULARIZATION
+
+-By considering the education, race, gender and year effect in our
+model, we have improved model accuracy, now well below the initial 10,7
+value. -We could further improve model accuracy, by using
+regularization, removing effects of noisy estimates (penalizing large
+estimates coming from small sample sizes).Anomalies in pay curves
+through time.
+
+Penalized least squares Choosing lambda equal 3.
+
+
+```{r}
+       lambda <- 3
+       mu <- mean(train_set$pay)
+       edu_train_avgs <- train_set %>% 
+            group_by(edu_5) %>%
+            summarize(b_i=sum(pay-mu)/(n()+lambda),n_i=n())
+       edu_train_avgs    
+                
+       #results
+       predicted_pay_05 <- test_set %>%
+         left_join(edu_train_avgs, by = "edu_5") %>%
+         mutate(pred=mu + b_i) %>%
+         pull(pred)
+       head(predicted_pay_05)
+                
+       sum(is.na(predicted_pay_05)) #[1] 0
+       model_5_rmse <- RMSE(predicted_pay_05, test_set$pay)
+       model_5_rmse
+                
+          predicted_pay_05na <-replace_na(predicted_pay_05, mu_hat)
+          head(predicted_pay_05na)
+                
+          #RMSE(predicted_pay_05na,test_set$pay)
+          model_5_rmse.na <- RMSE(predicted_pay_05na, test_set$pay)
+          model_5_rmse.na
+                
+       rmse_results <- bind_rows(rmse_results,
+                data_frame(method="Regularized Educ Effect Model",  
+                RMSE = model_5_rmse))
+       rmse_results %>% knitr::kable()        
+```
+
+
+## MODEL 7.
+Cross-validation - we'll use cross-validation for choosing a lambda:
+
+
+```{r}
+        lambdas <- seq(0, 10, 0.25)
+                
+        head(train_set$pay)
+        rmses <- sapply(lambdas, function(l){
+          mu <- mean(train_set$pay)
+          b_i <- train_set %>%
+            group_by(edu_5) %>%
+            summarize(b_i = sum(pay - mu)/(n()+l))
+          b_u <- train_set %>%
+            left_join(b_i, by="edu_5") %>%
+            group_by(race) %>%
+            summarize(b_u = sum(pay - b_i - mu)/(n()+l))
+          b_w <- train_set %>%
+            left_join(b_i, by="edu_5") %>%
+            left_join(b_u, by="race") %>%
+            group_by(gender) %>%
+            summarize(b_w = sum(pay - b_i -b_u - mu)/(n()+l))
+          predicted_pay_06 <-
+            test_set %>%
+            left_join(b_i, by = "edu_5") %>%
+            left_join(b_u, by = "race") %>%
+            left_join(b_w, by = "gender") %>%
+            mutate(pred = mu + b_i + b_u + b_w) %>%
+            pull(pred)
+          return(RMSE(predicted_pay_06, test_set$pay))
+        })
+        
+        qplot(lambdas, rmses)
+        lambda <- lambdas[which.min(rmses)]
+        lambda
+        #[1] 0
+        lambda_REE <-0
+        lambda_REE
+        
+        rmse_lambda_REE <- sapply(lambda_REE, function(l){
+          mu <- mean(train_set$pay)
+          b_i <- train_set %>%
+            group_by(edu_5) %>%
+            summarize(b_i = sum(pay - mu)/(n()+l))
+          b_u <- train_set %>%
+            left_join(b_i, by="edu_5") %>%
+            group_by(race) %>%
+            summarize(b_u = sum(pay - b_i - mu)/(n()+l))
+          b_w <- train_set %>%
+            left_join(b_i, by="edu_5") %>%
+            left_join(b_u, by="race") %>%
+            group_by(gender) %>%
+            summarize(b_w = sum(pay - b_i -b_u - mu)/(n()+l))
+          predicted_pay_06 <-
+            test_set %>%
+            left_join(b_i, by = "edu_5") %>%
+            left_join(b_u, by = "race") %>%
+            left_join(b_w, by = "gender") %>%
+            mutate(pred = mu + b_i + b_u + b_w) %>%
+            pull(pred)
+          return(RMSE(predicted_pay_06, test_set$pay))
+        })
+        
+        rmse_lambda_REE
+        #[1] 3.644879
+                
+     rmse_results <- bind_rows(rmse_results,
+              data_frame(method="Regularized Educ+Race+Gender Effect Model",  
+                                                     RMSE = rmse_lambda_REE ))
+     rmse_results %>% knitr::kable()         
+```
+
+
+Regularization is not doing much here, we could conclude there isn't
+much "noise" to be neutralized. Our model including "year" produces the
+best RMSE.
+MODEL 5, considering edu_5, year, race, and gender variables, provides the 
+lowest RMSE (3,2623). This is the best result - recommendation model- we've
+developed in this study.
+
+
+
+
+
+## Part 6 - CONCLUSIONS.
+
+     
+GENERAL CONCLUSIONS after data wrangling and visualization, and modeling:
+
+     
+1.All variables (4 independent), education level (edu_5), time (year), 
+gender (gender), race (race) have effects on wages (pay).
+
+2.Level of EDUCATION has the highest effect on pay. The higher the education 
+level, the higher wages,through time and for any race and gender;
+
+3.TIME has an effect on pay:
+-3.1."a" (advanced_degree) and "b" (bachelors_degree) levels growing through 
+ time;
+-3.2."c" (some_college) and "d" (high_school) stagnating;
+-3.3."e" (lower_than_high-school)level decreasing through time.
+Through time pay rates are increasing for higher levels of education (a, b), 
+and showing stagnation for the lower levels of education (c,d),and decreasing 
+for the lowest (e), across races and genders.
+
+4.RACE consistently (through time) affects the level of pay for the same 
+education level,being through time (in general, except a few anomalies) White 
+the highest paid, Hispanic following, and Black last;
+
+5.GENDER has been and continues to be a factor affecting pay level. Men are 
+better paid than Women across education level and race;
+
+6.Regarding combinations of RACE-GENDER: 
+-White_Men are the best paid at equal level of education, for all 5 education 
+levels; the best paid of any race-gender combination. 
+Specially for higher education levels.
+-Hispanic_Women are the worst paid group at the highest education level.
+
+Effects of the 4 independent variables are shown on the various modeling 
+approaches we've utilized in this study, coherent with these observations.
+     
+Note this study is based on the available data (selected data frame), and is 
+therefore limited by the extension and depth of the data. As an example ,three 
+races are considered only, while population in the USA includes a larger 
+number of ethnicity. 
+
+Nevertheless, this the study illustrates, within its limitations, the impact- 
+effect, of the various considered demographics variables.The study could be 
+further enriched by adding additional relevant complementary data to it.
+     
+     
